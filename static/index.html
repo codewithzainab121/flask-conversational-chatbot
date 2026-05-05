@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cheezious Chatbot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    /* ═══════════════════════════════════════
+       CSS VARIABLES — CHEEZIOUS THEME
+    ═══════════════════════════════════════ */
+    :root {
+      --red:        #E8001D;
+      --red-dark:   #b80018;
+      --red-light:  #ff2d47;
+      --yellow:     #FFD700;
+      --yellow-soft:#FFF3CD;
+      --dark:       #1a0a00;
+      --dark2:      #2d1200;
+      --surface:    #fff8f0;
+      --white:      #ffffff;
+      --gray:       #f0e8e0;
+      --text:       #2d1200;
+      --text-light: #7a5a40;
+      --shadow:     rgba(232,0,29,0.18);
+      --radius:     18px;
+      --radius-sm:  10px;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--dark);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Animated background ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 20%, rgba(232,0,29,0.25) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 80% at 80% 80%, rgba(255,215,0,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 100% 100% at 50% 50%, #1a0a00 0%, #0d0500 100%);
+      z-index: 0;
+    }
+
+    /* Floating food emojis bg */
+    .bg-emojis {
+      position: fixed; inset: 0; z-index: 0;
+      overflow: hidden; pointer-events: none;
+    }
+    .bg-emojis span {
+      position: absolute;
+      font-size: 2.5rem;
+      opacity: 0.06;
+      animation: floatUp linear infinite;
+    }
+    @keyframes floatUp {
+      0%   { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10%  { opacity: 0.06; }
+      90%  { opacity: 0.06; }
+      100% { transform: translateY(-120px) rotate(360deg); opacity: 0; }
+    }
+
+    /* ═══════════════════════════════════════
+       MAIN WRAPPER
+    ═══════════════════════════════════════ */
+    .wrapper {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 480px;
+      height: 100vh; max-height: 820px;
+      display: flex; flex-direction: column;
+      background: var(--surface);
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.08),
+        0 32px 80px rgba(0,0,0,0.7),
+        0 0 60px var(--shadow);
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: linear-gradient(135deg, var(--red-dark) 0%, var(--red) 60%, #ff4d00 100%);
+      padding: 18px 20px 14px;
+      display: flex; align-items: center; gap: 14px;
+      position: relative; overflow: hidden;
+      flex-shrink: 0;
+    }
+    .header::after {
+      content: '';
+      position: absolute; bottom: -20px; right: -20px;
+      width: 120px; height: 120px;
+      background: rgba(255,215,0,0.12);
+      border-radius: 50%;
+    }
+    .header-logo {
+      width: 56px; height: 56px;
+      background: var(--white);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      flex-shrink: 0;
+    }
+    .header-info { flex: 1; }
+    .header-title {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 1.7rem; letter-spacing: 2px;
+      color: var(--white);
+      line-height: 1;
+    }
+    .header-title span { color: var(--yellow); }
+    .header-sub {
+      font-size: 0.72rem; font-weight: 600;
+      color: rgba(255,255,255,0.75);
+      letter-spacing: 1px; text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .status-dot {
+      width: 10px; height: 10px;
+      background: #4ade80; border-radius: 50%;
+      box-shadow: 0 0 8px #4ade80;
+      animation: pulse-green 2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulse-green {
+      0%,100% { transform: scale(1); box-shadow: 0 0 6px #4ade80; }
+      50%      { transform: scale(1.3); box-shadow: 0 0 14px #4ade80; }
+    }
+
+    /* ── MESSAGES AREA ── */
+    .messages {
+      flex: 1; overflow-y: auto;
+      padding: 20px 16px;
+      display: flex; flex-direction: column; gap: 12px;
+      scroll-behavior: smooth;
+    }
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: rgba(232,0,29,0.3); border-radius: 4px; }
+
+    /* ── BUBBLES ── */
+    .bubble-wrap {
+      display: flex; align-items: flex-end; gap: 8px;
+      animation: slideIn 0.35s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(16px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .bubble-wrap.bot  { justify-content: flex-start; }
+    .bubble-wrap.user { justify-content: flex-end; flex-direction: row-reverse; }
+
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+    }
+    .avatar.bot-av {
+      background: linear-gradient(135deg, var(--red), var(--red-dark));
+      box-shadow: 0 3px 10px var(--shadow);
+    }
+    .avatar.user-av {
+      background: linear-gradient(135deg, var(--yellow), #ffa500);
+      font-size: 0.75rem; font-weight: 800; color: var(--dark);
+    }
+
+    .bubble {
+      max-width: 78%; padding: 11px 15px;
+      border-radius: var(--radius);
+      font-size: 0.88rem; line-height: 1.6;
+      word-break: break-word;
+    }
+    .bubble.bot {
+      background: var(--white);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .bubble.user {
+      background: linear-gradient(135deg, var(--red), var(--red-dark));
+      color: var(--white);
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 3px 14px var(--shadow);
+    }
+    .bubble strong { font-weight: 800; }
+    .bubble em { font-style: italic; opacity: 0.85; }
+
+    /* ── MENU CARD ── */
+    .menu-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+      max-width: 88%;
+      animation: slideIn 0.4s cubic-bezier(.34,1.56,.64,1);
+    }
+    .menu-header {
+      background: linear-gradient(135deg, var(--red), #ff4d00);
+      color: var(--white);
+      padding: 12px 16px;
+      font-family: 'Bebas Neue', cursive;
+      font-size: 1.3rem; letter-spacing: 2px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .menu-tabs {
+      display: flex; overflow-x: auto; gap: 0;
+      background: var(--gray);
+      padding: 8px 8px 0;
+      scroll-behavior: smooth;
+    }
+    .menu-tabs::-webkit-scrollbar { height: 0; }
+    .tab-btn {
+      background: transparent; border: none;
+      padding: 7px 13px; border-radius: 8px 8px 0 0;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.75rem; font-weight: 700;
+      color: var(--text-light); cursor: pointer;
+      white-space: nowrap; transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--white); color: var(--red);
+    }
+    .menu-items {
+      padding: 10px 12px 14px;
+      max-height: 230px; overflow-y: auto;
+    }
+    .menu-items::-webkit-scrollbar { width: 3px; }
+    .menu-items::-webkit-scrollbar-thumb { background: var(--red); border-radius: 3px; }
+    .menu-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 4px; border-bottom: 1px solid var(--gray);
+      font-size: 0.82rem;
+    }
+    .menu-item:last-child { border-bottom: none; }
+    .item-name { font-weight: 700; color: var(--text); }
+    .item-serves { font-size: 0.7rem; color: var(--text-light); margin-top: 2px; }
+    .item-price {
+      font-weight: 800; color: var(--red);
+      font-size: 0.85rem; white-space: nowrap;
+    }
+
+    /* ── TYPING INDICATOR ── */
+    .typing-wrap {
+      display: flex; align-items: flex-end; gap: 8px;
+    }
+    .typing-bubble {
+      background: var(--white); border-radius: var(--radius);
+      border-bottom-left-radius: 4px;
+      padding: 12px 16px;
+      display: flex; gap: 5px; align-items: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .dot {
+      width: 7px; height: 7px;
+      background: var(--red); border-radius: 50%;
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+    .dot:nth-child(2) { animation-delay: .2s; }
+    .dot:nth-child(3) { animation-delay: .4s; }
+    @keyframes bounce {
+      0%,60%,100% { transform: translateY(0); }
+      30%          { transform: translateY(-7px); }
+    }
+
+    /* ── QUICK REPLIES ── */
+    .quick-replies {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      padding: 0 16px 8px;
+    }
+    .qr-btn {
+      background: var(--white);
+      border: 2px solid var(--red);
+      color: var(--red);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.78rem; font-weight: 700;
+      cursor: pointer; transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .qr-btn:hover {
+      background: var(--red); color: var(--white);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+
+    /* ── INPUT AREA ── */
+    .input-area {
+      padding: 12px 16px 16px;
+      background: var(--white);
+      border-top: 2px solid var(--gray);
+      display: flex; gap: 10px; align-items: center;
+      flex-shrink: 0;
+    }
+    .input-wrap {
+      flex: 1; position: relative;
+    }
+    #userInput {
+      width: 100%;
+      background: var(--surface);
+      border: 2px solid var(--gray);
+      border-radius: 24px;
+      padding: 11px 18px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.9rem; color: var(--text);
+      outline: none; transition: border 0.2s;
+    }
+    #userInput:focus {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(232,0,29,0.1);
+    }
+    #userInput::placeholder { color: var(--text-light); }
+
+    .send-btn {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--red), var(--red-dark));
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 14px var(--shadow);
+      transition: all 0.2s; flex-shrink: 0;
+    }
+    .send-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 20px var(--shadow);
+    }
+    .send-btn:active { transform: scale(0.95); }
+    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── DIVIDER ── */
+    .time-divider {
+      text-align: center; font-size: 0.7rem;
+      color: var(--text-light); font-weight: 600;
+      position: relative;
+    }
+    .time-divider::before, .time-divider::after {
+      content: '';
+      position: absolute; top: 50%;
+      width: 30%; height: 1px;
+      background: var(--gray);
+    }
+    .time-divider::before { left: 0; }
+    .time-divider::after  { right: 0; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 520px) {
+      .wrapper { border-radius: 0; max-height: 100vh; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Floating bg emojis -->
+<div class="bg-emojis" id="bgEmojis"></div>
+
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-logo">🍕</div>
+    <div class="header-info">
+      <div class="header-title">CHEEZI<span>OUS</span></div>
+      <div class="header-sub">🤖 AI Food Assistant</div>
+    </div>
+    <div class="status-dot"></div>
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="messages" id="messages">
+    <div class="time-divider">Today</div>
+  </div>
+
+  <!-- QUICK REPLIES -->
+  <div class="quick-replies" id="quickReplies"></div>
+
+  <!-- INPUT -->
+  <div class="input-area">
+    <div class="input-wrap">
+      <input type="text" id="userInput" placeholder="Type your message..." autocomplete="off" />
+    </div>
+    <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+  </div>
+
+</div>
+
+<script>
+  /* ═══════════════════════════════════════
+     STATE
+  ═══════════════════════════════════════ */
+  let session = { stage: "ask_name", name: "", people_count: null };
+  let userInitials = "U";
+  let isWaiting = false;
+
+  /* ═══════════════════════════════════════
+     BACKGROUND EMOJIS
+  ═══════════════════════════════════════ */
+  const emojis = ["🍕","🍔","🍟","🧆","🥙","🌮","🍗","🥤","🍦"];
+  const bgEl = document.getElementById("bgEmojis");
+  emojis.forEach((e, i) => {
+    const span = document.createElement("span");
+    span.textContent = e;
+    span.style.cssText = `
+      left: ${Math.random()*95}%;
+      animation-duration: ${14 + Math.random()*14}s;
+      animation-delay: ${Math.random()*12}s;
+      font-size: ${1.5 + Math.random()*2}rem;
+    `;
+    bgEl.appendChild(span);
+  });
+
+  /* ═══════════════════════════════════════
+     INIT — Welcome message
+  ═══════════════════════════════════════ */
+  window.onload = () => {
+    setTimeout(() => {
+      addBotMessage("👋 Welcome to **Cheezious**! 🍕\n\nI'm **Cheezi**, your personal food assistant!\n\nMay I know your name please? 😊");
+    }, 600);
+    document.getElementById("userInput").focus();
+  };
+
+  /* ═══════════════════════════════════════
+     SEND MESSAGE
+  ═══════════════════════════════════════ */
+  async function sendMessage() {
+    if (isWaiting) return;
+    const input = document.getElementById("userInput");
+    const msg   = input.value.trim();
+    if (!msg) return;
+
+    // Set user initials from name if known
+    if (session.name) userInitials = session.name.charAt(0).toUpperCase();
+
+    addUserMessage(msg);
+    input.value = "";
+    clearQuickReplies();
+    showTyping();
+    isWaiting = true;
+    document.getElementById("sendBtn").disabled = true;
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg, session })
+      });
+      const data = await res.json();
+      hideTyping();
+      isWaiting = false;
+      document.getElementById("sendBtn").disabled = false;
+
+      session = data.session;
+      if (session.name) userInitials = session.name.charAt(0).toUpperCase();
+
+      addBotMessage(data.reply);
+
+      if (data.menu) renderMenu(data.menu);
+
+      setQuickReplies(getQuickReplies());
+
+    } catch (err) {
+      hideTyping();
+      isWaiting = false;
+      document.getElementById("sendBtn").disabled = false;
+      addBotMessage("⚠️ Oops! Something went wrong. Please try again.");
+    }
+  }
+
+  /* ═══════════════════════════════════════
+     QUICK REPLIES
+  ═══════════════════════════════════════ */
+  function getQuickReplies() {
+    if (session.stage === "ask_name") return [];
+    return ["📋 Show Menu", "🍽️ Suggest Meal", "📍 Location", "⏰ Timings", "💰 Prices"];
+  }
+
+  function setQuickReplies(replies) {
+    const el = document.getElementById("quickReplies");
+    el.innerHTML = "";
+    replies.forEach(r => {
+      const btn = document.createElement("button");
+      btn.className = "qr-btn";
+      btn.textContent = r;
+      btn.onclick = () => {
+        document.getElementById("userInput").value = r.replace(/^[^\w]+/, "").toLowerCase();
+        sendMessage();
+      };
+      el.appendChild(btn);
+    });
+  }
+
+  function clearQuickReplies() {
+    document.getElementById("quickReplies").innerHTML = "";
+  }
+
+  /* ═══════════════════════════════════════
+     RENDER HELPERS
+  ═══════════════════════════════════════ */
+  function addUserMessage(text) {
+    const wrap = document.createElement("div");
+    wrap.className = "bubble-wrap user";
+    wrap.innerHTML = `
+      <div class="avatar user-av">${userInitials}</div>
+      <div class="bubble user">${escHtml(text)}</div>
+    `;
+    appendMsg(wrap);
+  }
+
+  function addBotMessage(text) {
+    const wrap = document.createElement("div");
+    wrap.className = "bubble-wrap bot";
+    wrap.innerHTML = `
+      <div class="avatar bot-av">🤖</div>
+      <div class="bubble bot">${formatText(text)}</div>
+    `;
+    appendMsg(wrap);
+  }
+
+  function renderMenu(menuData) {
+    const card = document.createElement("div");
+    card.className = "menu-card";
+
+    const categories = Object.keys(menuData);
+    let tabsHtml = "";
+    categories.forEach((cat, i) => {
+      tabsHtml += `<button class="tab-btn ${i===0?'active':''}" onclick="switchTab(this,'tab-${i}')">${cat}</button>`;
+    });
+
+    let panelsHtml = "";
+    categories.forEach((cat, i) => {
+      const items = menuData[cat];
+      let itemsHtml = items.map(item => `
+        <div class="menu-item">
+          <div>
+            <div class="item-name">${escHtml(item.name)}</div>
+            <div class="item-serves">Serves ${item.serves}</div>
+          </div>
+          <div class="item-price">Rs. ${item.price.toLocaleString()}</div>
+        </div>
+      `).join("");
+      panelsHtml += `<div class="menu-items" id="tab-${i}" style="${i!==0?'display:none':''}">${itemsHtml}</div>`;
+    });
+
+    card.innerHTML = `
+      <div class="menu-header">🍽️ Our Full Menu</div>
+      <div class="menu-tabs">${tabsHtml}</div>
+      ${panelsHtml}
+    `;
+
+    const wrap = document.createElement("div");
+    wrap.className = "bubble-wrap bot";
+    wrap.style.flexDirection = "column";
+    wrap.style.alignItems = "flex-start";
+    wrap.appendChild(card);
+    appendMsg(wrap);
+  }
+
+  window.switchTab = function(btn, panelId) {
+    const card = btn.closest(".menu-card");
+    card.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    card.querySelectorAll(".menu-items").forEach(p => p.style.display = "none");
+    btn.classList.add("active");
+    card.querySelector(`#${panelId}`).style.display = "block";
+  };
+
+  /* ── Typing indicator ── */
+  let typingEl = null;
+  function showTyping() {
+    typingEl = document.createElement("div");
+    typingEl.className = "typing-wrap";
+    typingEl.id = "typingIndicator";
+    typingEl.innerHTML = `
+      <div class="avatar bot-av">🤖</div>
+      <div class="typing-bubble">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    `;
+    appendMsg(typingEl);
+  }
+  function hideTyping() {
+    const el = document.getElementById("typingIndicator");
+    if (el) el.remove();
+  }
+
+  function appendMsg(el) {
+    const msgs = document.getElementById("messages");
+    msgs.appendChild(el);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  /* ── Text formatting (bold, italic) ── */
+  function formatText(text) {
+    return escHtml(text)
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/__(.+?)__/g, '<u>$1</u>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  /* ── Enter key ── */
+  document.getElementById("userInput").addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+</script>
+</body>
+</html>
